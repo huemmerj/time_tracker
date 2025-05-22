@@ -1,11 +1,19 @@
 const express = require('express');
-const { ObjectId } = require('mongodb');
 const { collections } = require('../db/mongo-client');
+const { createProjectSchema, updateProjectSchema } = require('../validation/project');
+const { validateBody, validateParams } = require('../middleware/validate');
+const { z } = require('zod');
+const { ObjectId } = require('mongodb');
 const router = express.Router();
 
-// Middleware to handle async errors
-const asyncHandler = (fn) => (req, res, next) =>
+const idParamsSchema = z.object({
+  id: z.string().length(24, 'Invalid ID format'),
+})
+
+// Middleware to handle errors
+const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
+};
 
 // GET all projects
 router.get('/', asyncHandler(async (req, res) => {
@@ -14,9 +22,9 @@ router.get('/', asyncHandler(async (req, res) => {
 }));
 
 // GET a single project by ID
-router.get('/:id', asyncHandler(async (req, res) => {
+router.get('/:id', validateParams(idParamsSchema), asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const project = await collections.projects().findOne({ _id: new ObjectId(id) });
+  const project = await collections.projects().findOne({ _id: ObjectId.createFromHexString(id) });
   if (!project) {
     return res.status(404).json({ message: 'Project not found' });
   }
@@ -24,37 +32,49 @@ router.get('/:id', asyncHandler(async (req, res) => {
 }));
 
 // CREATE a new project
-router.post('/', asyncHandler(async (req, res) => {
-  const { name, description } = req.body;
-  if (!name) {
-    return res.status(400).json({ message: 'Name is required' });
-  }
-  const result = await collections.projects().insertOne({ name, description });
+router.post('/', validateBody(createProjectSchema), asyncHandler(async (req, res) => {
+  const { name, description, startTime, endTime } = req.body;
+  const result = await collections.projects().insertOne({ name, description, startTime, endTime });
   res.status(201).json({
     _id: result.insertedId,
     name,
-    description
+    description,
+    startTime,
+    endTime
   });
 }));
 
 // UPDATE an existing project
-router.put('/:id', asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const { name, description } = req.body;
-  const result = await collections.projects().updateOne(
-    { _id: new ObjectId(id) },
-    { $set: { name, description } }
-  );
-  if (result.modifiedCount === 0) {
-    return res.status(404).json({ message: 'Project not found or not modified' });
-  }
-  res.json({ message: 'Project updated successfully' });
-}));
+router.put(
+  '/:id',
+  validateParams(idParamsSchema),
+  validateBody(updateProjectSchema),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    // Filter out only defined fields
+    const updateData = Object.fromEntries(
+      Object.entries(req.body).filter(([_, v]) => v !== undefined)
+    );
+
+    const result = await collections.projects().findOneAndUpdate(
+      { _id: ObjectId.createFromHexString(id) },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+
+    if (!result) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    res.json(result); // return updated project including _id
+  })
+);
 
 // DELETE a project
-router.delete('/:id', asyncHandler(async (req, res) => {
+router.delete('/:id', validateParams(idParamsSchema), asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const result = await collections.projects().deleteOne({ _id: new ObjectId(id) });
+  const result = await collections.projects().deleteOne({ _id: ObjectId.createFromHexString(id) });
   if (result.deletedCount === 0) {
     return res.status(404).json({ message: 'Project not found' });
   }
