@@ -1,11 +1,31 @@
-const { z } = require('zod');
+import { z } from 'zod';
 
-const create bookingSchema = z.object({
+const createBookingSchema = z.object({
   projectId: z.string().length(24, 'Invalid project ID format'),
   startTime: z.coerce.date({ required_error: 'Start time is required' }),
   endTime: z.coerce.date({ required_error: 'End time is required' }),
 }).refine((data) => {
-  // Check if endTime exists and is after startTime
-  return !data.endTime || data.endTime > data.startTime;
+  if (data.startTime && data.endTime) {
+    return data.endTime > data.startTime;
+  }
+  return true;
 }, {
   message: 'endTime must be after startTime',
+  path: ['endTime'],
+});
+
+const updateBookingSchema = z.object({
+  projectId: z.string().length(24, 'Invalid project ID format').optional(),
+  startTime: z.coerce.date({ required_error: 'Start time is required' }).optional(),
+  endTime: z.coerce.date({ required_error: 'End time is required' }).optional(),
+}).refine((data) => {
+  if (data.startTime && data.endTime) {
+    return data.endTime > data.startTime;
+  }
+  return true;
+}, {
+  message: 'endTime must be after startTime',
+  path: ['endTime'],
+});
+
+export { createBookingSchema, updateBookingSchema };

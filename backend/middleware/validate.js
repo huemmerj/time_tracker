@@ -1,5 +1,5 @@
 
-const { z } = require('zod');
+import { z } from 'zod';
 const idParamsSchema = z.object({
   id: z.string().length(24, 'Invalid ID format'),
 })
@@ -32,7 +32,7 @@ function validateBody(schema) {
   };
 }
 
-module.exports = {
+export {
   validateParams,
   validateBody,
   idParamsSchema,

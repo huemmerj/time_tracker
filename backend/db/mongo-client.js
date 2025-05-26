@@ -1,5 +1,6 @@
-const { MongoClient } = require('mongodb');
-require('dotenv').config();
+import { MongoClient } from 'mongodb';
+import * as dotenv from 'dotenv' 
+dotenv.config();
 
 const uri = process.env.MONGO_URI;
 
@@ -18,8 +19,4 @@ const collections = {
   tags: () => getDb().collection('tags'),
 };
 
-module.exports = {
-  client,
-  getDb,
-  collections,
-};
+export { client, getDb, collections };

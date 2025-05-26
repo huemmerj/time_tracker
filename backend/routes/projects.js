@@ -1,11 +1,10 @@
-const express = require('express');
-const { collections } = require('../db/mongo-client');
-const { createProjectSchema, updateProjectSchema } = require('../validation/project');
-const { validateBody, validateParams, idParamsSchema } = require('../middleware/validate');
-const { z } = require('zod');
-const { ObjectId } = require('mongodb');
-const router = express.Router();
+import express from 'express';
+import { collections } from '../db/mongo-client.js';
+import { createProjectSchema, updateProjectSchema } from '../validation/project.js';
+import { validateBody, validateParams, idParamsSchema } from '../middleware/validate.js';
+import { ObjectId } from 'mongodb';
 
+const router = express.Router();
 // Middleware to handle errors
 const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -31,13 +30,7 @@ router.get('/:id', validateParams(idParamsSchema), asyncHandler(async (req, res)
 router.post('/', validateBody(createProjectSchema), asyncHandler(async (req, res) => {
   const { name, description, startTime, endTime } = req.body;
   const result = await collections.projects().insertOne({ name, description, startTime, endTime });
-  res.status(201).json({
-    _id: result.insertedId,
-    name,
-    description,
-    startTime,
-    endTime
-  });
+  res.status(201).json(result);
 }));
 
 // UPDATE an existing project
@@ -76,5 +69,4 @@ router.delete('/:id', validateParams(idParamsSchema), asyncHandler(async (req, r
   }
   res.json({ message: 'Project deleted successfully' });
 }));
-
-module.exports = router;
+export default router;

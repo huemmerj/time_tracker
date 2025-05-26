@@ -1,5 +1,5 @@
-const express = require('express');
-const { collections } = require('../db/mongo-client');
+import  express from 'express';
+import { collections } from '../db/mongo-client.js';
 const router = express.Router();
 
 // Middleware to handle errors
@@ -54,4 +54,4 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   res.json({ message: 'Tag deleted successfully' });
 }));
 
-module.exports = router;
+export default router;
