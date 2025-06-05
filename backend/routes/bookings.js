@@ -30,10 +30,7 @@ router.get('/:id', validateParams(idParamsSchema), asyncHandler(async (req, res)
 
 router.post('/', validateBody(createBookingSchema), asyncHandler(async (req, res) => {
   const result = await collections.bookings().insertOne(req.body);
-  res.status(201).json({
-    _id: result.insertedId,
-    ...req.body
-  })
+  res.status(201).json(result)
 }));
 
 

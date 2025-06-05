@@ -3,17 +3,26 @@ import { collections } from '../db/mongo-client.js';
 import { createProjectSchema, updateProjectSchema } from '../validation/project.js';
 import { validateBody, validateParams, idParamsSchema } from '../middleware/validate.js';
 import { ObjectId } from 'mongodb';
-
+import {ApiResponse} from '../utils/api-response.js';
 const router = express.Router();
 // Middleware to handle errors
-const asyncHandler = (fn) => (req, res, next) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
+const asyncHandler = (fn) => async (req, res, next) => {
+  try {
+    await fn(req, res, next);
+  } catch (err) {
+    console.error(err); // Optional: log for debugging
+
+    const statusCode = err.statusCode || 500;
+    const message = err.message || 'Internal server error';
+
+    res.status(statusCode).json(ApiResponse.error(message));
+  }
 };
 
 // GET all projects
 router.get('/', asyncHandler(async (req, res) => {
   const projects = await collections.projects().find().toArray();
-  res.json(projects);
+  res.json(ApiResponse.success(projects, 'Projects retrieved successfully', 200));
 }));
 
 // GET a single project by ID
@@ -21,16 +30,17 @@ router.get('/:id', validateParams(idParamsSchema), asyncHandler(async (req, res)
   const { id } = req.params;
   const project = await collections.projects().findOne({ _id: ObjectId.createFromHexString(id) });
   if (!project) {
-    return res.status(404).json({ message: 'Project not found' });
+    const err = new Error('Project not found');
+    err.statusCode = 404;
+    throw err;
   }
-  res.json(project);
+  res.json(ApiResponse.success(project));
 }));
 
 // CREATE a new project
 router.post('/', validateBody(createProjectSchema), asyncHandler(async (req, res) => {
-  const { name, description, startTime, endTime } = req.body;
-  const result = await collections.projects().insertOne({ name, description, startTime, endTime });
-  res.status(201).json(result);
+  const result = await collections.projects().insertOne(req.body);
+  res.status(201).json(ApiResponse.success(result, 'Project created successfully', 201));
 }));
 
 // UPDATE an existing project
@@ -53,10 +63,10 @@ router.put(
     );
 
     if (!result) {
-      return res.status(404).json({ message: 'Project not found' });
+      return res.status(404).json(ApiResponse.error('Project not found', 404));
     }
 
-    res.json(result); // return updated project including _id
+    res.status(200).json(ApiResponse.success(result, 'Project updated successfully', 200)); // return updated project including _id
   })
 );
 
@@ -65,8 +75,8 @@ router.delete('/:id', validateParams(idParamsSchema), asyncHandler(async (req, r
   const { id } = req.params;
   const result = await collections.projects().deleteOne({ _id: ObjectId.createFromHexString(id) });
   if (result.deletedCount === 0) {
-    return res.status(404).json({ message: 'Project not found' });
+    return res.status(404).json(ApiResponse.error('Project not found', 404));
   }
-  res.json({ message: 'Project deleted successfully' });
+  res.json(ApiResponse.success(null, 'Project deleted successfully', 200));
 }));
 export default router;
