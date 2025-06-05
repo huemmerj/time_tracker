@@ -4,20 +4,9 @@ import { createProjectSchema, updateProjectSchema } from '../validation/project.
 import { validateBody, validateParams, idParamsSchema } from '../middleware/validate.js';
 import { ObjectId } from 'mongodb';
 import {ApiResponse} from '../utils/api-response.js';
+import asyncHandler from '../middleware/ascync-handler.js';
 const router = express.Router();
-// Middleware to handle errors
-const asyncHandler = (fn) => async (req, res, next) => {
-  try {
-    await fn(req, res, next);
-  } catch (err) {
-    console.error(err); // Optional: log for debugging
 
-    const statusCode = err.statusCode || 500;
-    const message = err.message || 'Internal server error';
-
-    res.status(statusCode).json(ApiResponse.error(message));
-  }
-};
 
 // GET all projects
 router.get('/', asyncHandler(async (req, res) => {
