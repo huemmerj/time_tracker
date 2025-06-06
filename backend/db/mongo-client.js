@@ -17,6 +17,7 @@ const getDb = () => client.db(dbName);
 const collections = {
   projects: () => getDb().collection('projects'),
   tags: () => getDb().collection('tags'),
+  bookings: () => getDb().collection('bookings'),
 };
 
 export { client, getDb, collections };
