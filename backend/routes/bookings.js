@@ -26,6 +26,12 @@ router.get('/:id', validateParams(idParamsSchema),asyncHandler(async (req, res) 
 
 // CREATE a new booking
 router.post('/', validateBody(createBookingSchema),asyncHandler(async (req, res) => {
+  // Check if a project with the given ID exists
+  let project = await collections.projects().findOne({ _id: ObjectId.createFromHexString(req.body.projectId) });
+  if (!project) {
+    return res.status(404).json(ApiResponse.error('Project not found', 404));
+  }
+
   const result = await collections.bookings().insertOne(req.body);
   res.status(201).json(ApiResponse.success(result, 'Booking created successfully', 201, { id: result.insertedId }));
 }));
@@ -36,11 +42,18 @@ router.put(
   validateBody(updateBookingSchema),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-
+    
     // Filter out only defined fields
     const updateData = Object.fromEntries(
       Object.entries(req.body).filter(([_, v]) => v !== undefined)
     );
+    // Check if a project with the given ID exists
+    if (updateData.projectId) {
+      let project = await collections.projects().findOne({ _id: ObjectId.createFromHexString(updateData.projectId) });
+      if (!project) {
+        return res.status(404).json(ApiResponse.error('Project not found', 404));
+      }
+    }
 
     const result = await collections.bookings().findOneAndUpdate(
       { _id: ObjectId.createFromHexString(id) },
