@@ -32,7 +32,7 @@ router.get('/', asyncHandler(async (req, res) => {
 
 // GET a single booking by ID
 router.get('/:id', asyncHandler(async (req, res) => {
-  const bookingId = new ObjectId(req.params.id);
+  const bookingId = ObjectId.createFromHexString(req.params.id);
 
   const [booking] = await collections.bookings().aggregate([
     { $match: { _id: bookingId } },
@@ -75,6 +75,7 @@ router.post('/', validateBody(createBookingSchema), asyncHandler(async (req, res
   const result = await collections.bookings().insertOne({ ...req.body, projectId: ObjectId.createFromHexString(projectId), tags: tagIds, projectId: ObjectId.createFromHexString(projectId) });
   res.status(201).json(ApiResponse.success(result, 'Booking created successfully', 201, { id: result.insertedId }));
 }));
+
 router.put(
   '/:id',
   validateParams(idParamsSchema),
